@@ -1,7 +1,7 @@
 # Lab 2: SQLite Database and CRUD Routes
 
 **Course:** Backend Development Fundamentals · Year II Term II · Aurora  
-**Faculty:** Joel Prashanth D
+**Faculty:** Chintakrindi Sai Siva Teja
 
 ---
 
@@ -13,7 +13,7 @@
 
 ## Live Link
 
-> Not deployed yet — Postman screenshots of every endpoint are provided in the `screenshots/` folder below.
+>**Deployed Link:** https://bdf-lab-1-anudeep-214-8o4t.vercel.app/
 
 ---
 
