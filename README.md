@@ -20,7 +20,7 @@
 
 ## 🌐 Deployments & Links
 - **Lab 1 Live link:** https://bdf-lab-1-anudeep-214.vercel.app/
-- **Lab 2 Live Link:** https://bdf-lab-1-anudeep-214-8o4t.vercel.app/
+- **Lab 2 Live Link:** https://bdf-lab2-anudeep-214.onrender.com/books/1/
 - **Lab 3 Live Link:** https://bdf-lab1-anudeep-214.onrender.com/
 ---
 
