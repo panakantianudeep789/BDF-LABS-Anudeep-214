@@ -11,9 +11,9 @@
 
 ---
 
-## Live Link
+## 🌐 Live Link
 
->**Deployed Link:** https://bdf-lab-1-anudeep-214-8o4t.vercel.app/
+> **Deployment Note:** This lab uses SQLite (`sqlite3`), an embedded file-based database that requires native C++ binary bindings and persistent local file storage. On cloud/serverless platforms (such as Render or Vercel), pre-compiled `node_sqlite3.node` fails due to GLIBC library version differences in containerized runtimes (`GLIBC_2.38 not found`). In accordance with the course submission guidelines (*"If the project cannot be deployed, say why in the README and add Postman screenshots of every endpoint"*), complete verification screenshots for all CRUD endpoints (GET all, GET one, POST, PUT, DELETE, and 404) are provided in the `screenshots/` section below.
 
 ---
 
@@ -129,4 +129,3 @@ POST is used to *create* a new resource when the server decides its id. PUT is u
 
 - **Problem faced:** The server could start before the database connection was ready, causing crashes on the first request.
 - **How solved:** Wrapped everything in `initializeDBAndServer()` — an async function that `await`s the DB connection and only then calls `app.listen()`.
-
