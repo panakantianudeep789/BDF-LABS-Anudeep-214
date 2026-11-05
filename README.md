@@ -21,6 +21,7 @@
 ## 🌐 Deployments & Links
 - **Lab 1 Live link:** https://bdf-lab-1-anudeep-214.vercel.app/
 - **Lab 2 Live Link:** https://bdf-lab-1-anudeep-214-8o4t.vercel.app/
+- **Lab 3 Live Link:** https://bdf-lab1-anudeep-214.onrender.com/
 ---
 
 ## 🚀 Lab 3: Quick Start
