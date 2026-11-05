@@ -1,14 +1,16 @@
 // ──────────────────────────────────────────────────────────────────
-// Lab 2 – SQLite database and CRUD routes
+// Lab 2 – SQLite database and CRUD routes (Pure JS / WebAssembly SQLite)
+// Compatible with all Cloud Deployments (Render, Vercel, Railway)
 // Backend Development Fundamentals · Year II Term II · Aurora
+// Faculty: Chintakrindi Sai Siva Teja / Joel Prashanth D
 // Name   : Anudeep panakanti
 // Reg No : 214
 // Section: 214 CSE-2D
 // ──────────────────────────────────────────────────────────────────
 
 const express = require("express");
-const { open } = require("sqlite");
-const sqlite3 = require("sqlite3");
+const initSqlJs = require("sql.js");
+const fs = require("fs");
 const path = require("path");
 
 const app = express();
@@ -17,21 +19,33 @@ app.use(express.json()); // parse JSON request bodies
 const PORT = process.env.PORT || 3000;
 const DB_PATH = path.join(__dirname, "books.db");
 
-let db; // will hold the database connection after initialization
+let db;
+
+// Helper to persist database changes to disk
+function saveDatabase() {
+  try {
+    const data = db.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(DB_PATH, buffer);
+  } catch (err) {
+    console.error("Error saving database file:", err.message);
+  }
+}
 
 // ── initializeDBAndServer ──────────────────────────────────────────
-// Opens the SQLite connection and creates the table if it doesn't
-// exist, then starts Express only after the DB is ready.
 const initializeDBAndServer = async () => {
   try {
-    // Open (or create) the database file
-    db = await open({
-      filename: DB_PATH,
-      driver: sqlite3.Database,
-    });
+    const SQL = await initSqlJs();
 
-    // Create the books table if it doesn't exist yet
-    await db.exec(`
+    if (fs.existsSync(DB_PATH)) {
+      const filebuffer = fs.readFileSync(DB_PATH);
+      db = new SQL.Database(filebuffer);
+    } else {
+      db = new SQL.Database();
+    }
+
+    // Create the book table
+    db.run(`
       CREATE TABLE IF NOT EXISTS book (
         id      INTEGER PRIMARY KEY AUTOINCREMENT,
         title   TEXT    NOT NULL,
@@ -41,10 +55,12 @@ const initializeDBAndServer = async () => {
       );
     `);
 
-    // Seed 10 rows only when the table is empty
-    const count = await db.get("SELECT COUNT(*) AS cnt FROM book");
-    if (count.cnt === 0) {
-      await db.exec(`
+    // Check count and seed if empty
+    const res = db.exec("SELECT COUNT(*) AS cnt FROM book;");
+    const count = res.length > 0 && res[0].values[0] ? res[0].values[0][0] : 0;
+
+    if (count === 0) {
+      db.run(`
         INSERT INTO book (title, author, price, pages) VALUES
           ('The Pragmatic Programmer',      'Andrew Hunt',       499, 352),
           ('Clean Code',                    'Robert C. Martin',  399, 464),
@@ -57,10 +73,10 @@ const initializeDBAndServer = async () => {
           ('Pro Git',                       'Scott Chacon',      299, 574),
           ('The Web Application Hacker''s Handbook', 'Stuttard', 649, 912);
       `);
-      console.log("  Database seeded with 10 books.");
+      saveDatabase();
+      console.log("Database seeded with 10 books.");
     }
 
-    // Start the HTTP server only after DB is ready
     app.listen(PORT, () => {
       console.log(`\n  Express + SQLite server running!`);
       console.log(`   Local : http://localhost:${PORT}`);
@@ -73,14 +89,18 @@ const initializeDBAndServer = async () => {
 };
 
 // ══════════════════════════════════════════════════════════════════
-// ROUTES
+// CRUD ROUTES
 // ══════════════════════════════════════════════════════════════════
 
 // ── GET /books/ ───────────────────────────────────────────────────
-// Returns all books in the database as a JSON array (HTTP 200)
-app.get("/books/", async (req, res) => {
+app.get("/books/", (req, res) => {
   try {
-    const books = await db.all("SELECT * FROM book ORDER BY id");
+    const stmt = db.prepare("SELECT * FROM book ORDER BY id;");
+    const books = [];
+    while (stmt.step()) {
+      books.push(stmt.getAsObject());
+    }
+    stmt.free();
     res.status(200).json(books);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -88,26 +108,25 @@ app.get("/books/", async (req, res) => {
 });
 
 // ── GET /books/:bookId/ ───────────────────────────────────────────
-// Returns one book by its id.
-// 200 if found, 404 if not found.
-app.get("/books/:bookId/", async (req, res) => {
+app.get("/books/:bookId/", (req, res) => {
   try {
     const { bookId } = req.params;
-    // ? placeholder prevents SQL injection
-    const book = await db.get("SELECT * FROM book WHERE id = ?", [bookId]);
-    if (!book) {
-      return res.status(404).json({ error: "Book not found" });
+    const stmt = db.prepare("SELECT * FROM book WHERE id = ?;");
+    stmt.bind([bookId]);
+    if (stmt.step()) {
+      const book = stmt.getAsObject();
+      stmt.free();
+      return res.status(200).json(book);
     }
-    res.status(200).json(book);
+    stmt.free();
+    res.status(404).json({ error: "Book not found" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // ── POST /books/ ──────────────────────────────────────────────────
-// Adds a new book. Expects JSON body: { title, author, price, pages }
-// Returns 201 Created with the new book's id.
-app.post("/books/", async (req, res) => {
+app.post("/books/", (req, res) => {
   try {
     const { title, author, price, pages } = req.body;
     if (!title || !author || price == null || pages == null) {
@@ -115,40 +134,51 @@ app.post("/books/", async (req, res) => {
         .status(400)
         .json({ error: "title, author, price and pages are required" });
     }
-    const result = await db.run(
-      "INSERT INTO book (title, author, price, pages) VALUES (?, ?, ?, ?)",
-      [title, author, price, pages]
-    );
-    res.status(201).json({ id: result.lastID, message: "Book added successfully" });
+
+    db.run("INSERT INTO book (title, author, price, pages) VALUES (?, ?, ?, ?);", [
+      title,
+      author,
+      price,
+      pages,
+    ]);
+
+    // Retrieve last inserted id
+    const resId = db.exec("SELECT last_insert_rowid() AS id;");
+    const lastID = resId[0].values[0][0];
+
+    saveDatabase();
+    res.status(201).json({ id: lastID, message: "Book added successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // ── PUT /books/:bookId/ ───────────────────────────────────────────
-// Updates an existing book by id.
-// Expects JSON body with any subset of { title, author, price, pages }.
-// Returns 200 with a success message, or 404 if not found.
-app.put("/books/:bookId/", async (req, res) => {
+app.put("/books/:bookId/", (req, res) => {
   try {
     const { bookId } = req.params;
 
-    // Check the book exists first
-    const existing = await db.get("SELECT * FROM book WHERE id = ?", [bookId]);
-    if (!existing) {
+    // Check if book exists
+    const checkStmt = db.prepare("SELECT * FROM book WHERE id = ?;");
+    checkStmt.bind([bookId]);
+    if (!checkStmt.step()) {
+      checkStmt.free();
       return res.status(404).json({ error: "Book not found" });
     }
+    const existing = checkStmt.getAsObject();
+    checkStmt.free();
 
-    // Merge incoming fields with existing values (partial update support)
     const title  = req.body.title  ?? existing.title;
     const author = req.body.author ?? existing.author;
     const price  = req.body.price  ?? existing.price;
     const pages  = req.body.pages  ?? existing.pages;
 
-    await db.run(
-      "UPDATE book SET title = ?, author = ?, price = ?, pages = ? WHERE id = ?",
+    db.run(
+      "UPDATE book SET title = ?, author = ?, price = ?, pages = ? WHERE id = ?;",
       [title, author, price, pages, bookId]
     );
+
+    saveDatabase();
     res.status(200).json({ message: "Book updated successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -156,16 +186,20 @@ app.put("/books/:bookId/", async (req, res) => {
 });
 
 // ── DELETE /books/:bookId/ ────────────────────────────────────────
-// Removes a book by id.
-// Returns 200 with a success message, or 404 if not found.
-app.delete("/books/:bookId/", async (req, res) => {
+app.delete("/books/:bookId/", (req, res) => {
   try {
     const { bookId } = req.params;
-    const existing = await db.get("SELECT * FROM book WHERE id = ?", [bookId]);
-    if (!existing) {
+
+    const checkStmt = db.prepare("SELECT * FROM book WHERE id = ?;");
+    checkStmt.bind([bookId]);
+    if (!checkStmt.step()) {
+      checkStmt.free();
       return res.status(404).json({ error: "Book not found" });
     }
-    await db.run("DELETE FROM book WHERE id = ?", [bookId]);
+    checkStmt.free();
+
+    db.run("DELETE FROM book WHERE id = ?;", [bookId]);
+    saveDatabase();
     res.status(200).json({ message: "Book deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -175,11 +209,9 @@ app.delete("/books/:bookId/", async (req, res) => {
 // ── 404 handler ───────────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({
-    error: "404 – Route not found",
+    error: "404 - Route not found",
     path: req.originalUrl,
   });
 });
 
-// ── Bootstrap ─────────────────────────────────────────────────────
 initializeDBAndServer();
-
