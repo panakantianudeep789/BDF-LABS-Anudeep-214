@@ -1,19 +1,17 @@
 # Lab 3: REST API, Query Parameters, Validation, and Debugging
 
 **Course:** Backend Development Fundamentals · Year II Term II · Aurora  
-**Faculty:** Joel Prashanth D / Chintakrindi Sai Siva Teja  
+**Faculty:** Chintakrindi Sai Siva Teja  
 
 ---
 
 **Name:** Anudeep panakanti  
-**Registration Number:** 214  
+**Registration Number:** 252U1R1179 
 **Section:** 214 CSE-2D  
 
 ---
 
-## 🌐 Live Link
-
-> **Deployment Note:** This lab uses SQLite (`sqlite3`), an embedded file-based database that requires native C++ binary bindings and persistent local file storage. On cloud/serverless platforms (such as Render or Vercel), pre-compiled `node_sqlite3.node` fails due to GLIBC library version differences in containerized runtimes. In accordance with the course submission guidelines (*"If the project cannot be deployed, say why in the README and add Postman screenshots of every endpoint"*), complete verification screenshots for all search, filter, validation, creation, and 404 test cases are provided in the `screenshots/` section below.
+## 🌐 Live Link :https://bdf-lab1-anudeep-214.onrender.com/
 
 ---
 
