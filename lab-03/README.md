@@ -13,7 +13,7 @@
 
 ## 🌐 Live Link
 
-> Not deployed yet — test verification screenshots are provided in the `screenshots/` folder below.
+> **Deployment Note:** This lab uses SQLite (`sqlite3`), an embedded file-based database that requires native C++ binary bindings and persistent local file storage. On cloud/serverless platforms (such as Render or Vercel), pre-compiled `node_sqlite3.node` fails due to GLIBC library version differences in containerized runtimes. In accordance with the course submission guidelines (*"If the project cannot be deployed, say why in the README and add Postman screenshots of every endpoint"*), complete verification screenshots for all search, filter, validation, creation, and 404 test cases are provided in the `screenshots/` section below.
 
 ---
 
@@ -115,3 +115,4 @@ Statelessness means that every request from the client to the server must contai
 
 ### 5. GET `/books/9999` Non-existent ID (404 Not Found)
 ![Record not found](screenshots/get-book-404.png)
+
